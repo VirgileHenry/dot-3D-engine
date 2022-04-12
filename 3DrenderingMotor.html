@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<head>
+
+<style type='text/css'>
+  canvas {
+    background: black;
+  }
+  body {
+    margin: 0px; 
+  }
+</style>
+</head>
+<body>
+<canvas></canvas>
+<script>
+
+
+var canvas = document.querySelector('canvas');
+var context = canvas.getContext('2d');
+var largeur = window.innerWidth;
+var hauteur = window.innerHeight;
+canvas.width = largeur;
+canvas.height = hauteur;
+var transX = canvas.width * 0.5, transY = canvas.height * 0.5;
+context.translate(transX, transY);
+context.fillStyle = 'white';
+context.strokeStyle = 'white';
+//context.fillRect(-5, -5, 5, 5)
+
+
+var verticalAngle = -Math.PI /10
+var zoom = 50;
+var camera = [0, 0, zoom] //coordonnées spériques de la cam, en radians, puis distance de la cam au centre
+camera[1] = verticalAngle
+var sDist = 200;
+var allPoints = [];
+
+function getRandomColor() {
+  var letters = '0123456789abcdef';
+  var color = '#';
+  for(var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random()*16)];
+  }
+  return color;
+}
+
+function render(camera, x, y, z) {
+  var alpha, beta;
+  alpha = -camera[0];
+  beta = -camera[1];
+  var trans1x, trans1y, trans1z;
+  trans1x = Math.cos(alpha)*(x + (z * Math.tan(alpha)));
+  trans1y = y;
+  trans1z = (z / Math.cos(alpha)) - (trans1x * Math.tan(alpha));
+  var xNew, yNew, zNew;
+  xNew = trans1x;
+  yNew = Math.cos(beta)*(trans1y + (trans1z * Math.tan(beta)));
+  zNew = (trans1z / Math.cos(beta)) - (yNew * Math.tan(beta));
+  var relativePointPos = [xNew, yNew, zNew];
+  var xProj, yProj;
+  //calcul de xProj
+  xProj = xNew / (camera[2] - zNew) * (camera[2] + sDist);
+  //calcul de yProj
+  yProj = yNew / (camera[2] - zNew) * (camera[2] + sDist);
+  var newPoint = [xProj, yProj];
+  //console.log(newPoint);
+  return newPoint;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  context.clearRect(-1000, -1000, 2000, 2000);
+  for(var i = 0; i < allPoints.length; i++) {
+    point = render(camera, allPoints[i][0], allPoints[i][1], allPoints[i][2]);
+    context.fillStyle = allPoints[i][3];
+    context.fillRect(point[0], point[1], 1, 1);
+    camera[0] += 0.0000003
+  }
+}
+
+
+function createCube(x, y, z, ax, ay, az, color) {
+  var xl = ax - x;
+  var yl = ay - y;
+  var zl = az - z;
+  for(var i = x; i < x + xl; i += 0.2*Math.abs(xl)/xl) {
+    allPoints.push([i, y, z, color]);
+    allPoints.push([i, y, z + zl, color]);
+    allPoints.push([i, y + yl, z, color]);
+    allPoints.push([i, y + yl, z + zl, color]);
+  }
+  for(var i = y; i < y + yl; i += 0.2*Math.abs(yl)/yl) {
+    allPoints.push([x, i, z, color]);
+    allPoints.push([x + xl, i, z, color]);
+    allPoints.push([x, i, z + zl, color]);
+    allPoints.push([x + xl, i, z + zl, color]);
+  }
+  for(var i = z; i < z + zl; i += 0.2*Math.abs(zl)/zl) {
+    allPoints.push([x, y, i, color]);
+    allPoints.push([x, y + yl, i, color]);
+    allPoints.push([x + xl, y, i, color]);
+    allPoints.push([x + xl, y + yl, i, color]);
+  }
+}
+
+
+function createSphere(x, y, z, r, color) {
+  var rNew
+  for(var i = 0; i < Math.PI; i += Math.PI /10) {
+    for(var j = 0; j < Math.PI*2; j += 0.02) {
+      rNew = Math.sin(i) * r;
+      allPoints.push([x + Math.cos(j)*rNew, y + Math.cos(i)*r, z + Math.sin(j)*rNew, color]);
+    }
+  }
+  for(var i = 0; i < Math.PI*2; i += Math.PI /10) {
+    for(var j = 0; j < Math.PI; j += 0.02) {
+      rNew = Math.sin(j) * r;
+      allPoints.push([x + Math.sin(i)*rNew, y + Math.cos(j)*r, z + Math.cos(i)*rNew, color]);
+    }
+  }
+}
+
+
+function createPlane(x, z, ox, oz, y, color) {
+  var xl = ox - x;
+  var zl = oz - z;
+  for(var i = x; i < ox; i += 0.01*xl) {
+    for(var j = z; j < oz; j += 0.01*zl) {
+      allPoints.push([i, y, j, color]);
+    }
+  }
+}
+
+
+function createRandomStuff(x, color) {
+  for(var i = 0; i < x; i ++) {
+    allPoints.push([1 / ((Math.random()-0.5)/2), 1 / ((Math.random()-0.5)/2), 1 / ((Math.random()-0.5)/2), color]);
+  }
+}
+
+function createRandomStuff2(x, color) {
+  function RS() {
+    var lol = Math.random()-0.5;
+    var xD = lol / Math.abs(lol);
+    return xD;
+  }
+  for(var i = 0; i < x; i ++) {
+    allPoints.push([Math.random()*Math.random()*Math.random()*100*RS(), Math.random()*Math.random()*Math.random()*100*RS(), Math.random()*Math.random()*Math.random()*100*RS(), color]);
+  }
+}
+
+
+
+// différents modèles :
+
+/*
+createPlane(-20, -20, 20, 20, 10, 'red');
+createPlane(-60, -20, -20, 20, 20, 'red');
+createPlane(20, -20, 60, 20, 30, 'red');
+createCube(-20, 10, -20, 20, 50, 20, 'red')
+createCube(-60, 20, -20, -20, 50, 20, 'red')
+createCube(20, 30, -20, 60, 50, 20, 'red')
+createSphere(0, -10, 0, 20, 'orange');
+createSphere(-40, 5, 0, 15, 'grey');
+createSphere(40, 20, 0, 10, 'brown');
+*/
+
+/*
+createPlane(-20, -20, 20, 20, 30, 'red');
+createCube(-20, -10, -20, 20, 30, 20, 'red')
+createSphere(0, 10, 0, 20, 'orange');
+*/
+
+//createSphere(0, 00, 0, 50, 'white');
+
+
+
+createRandomStuff2(10000, 'cyan');
+
+animate();
+
+
+//autres trucs sympa, c'est plus vraiment du rendering...
+
+
+
+function createRandomStuff2(x, color) {
+  function RS() {
+    var lol = Math.random()-0.5;
+    var xD = lol / Math.abs(lol);
+    return xD;
+  }
+  for(var i = 0; i < x; i ++) {
+    var thatX = Math.random()*Math.random()*Math.random()*100*RS()
+    var thatY = Math.random()*Math.random()*Math.random()*100*RS()
+    var thatZ = Math.random()*Math.random()*Math.random()*100*RS()
+    allPoints.push([thatX, thatY, thatZ, color]);
+  }
+}
+
+
+
+</script>
+</body>
+</html>
